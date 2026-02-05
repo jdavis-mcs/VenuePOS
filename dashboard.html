@@ -1,6 +1,539 @@
-function printReceipt(data, mode) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System | Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    
+    <style>
+        :root { --bg-color: #1a1a1a; --surface-color: #2d2d2d; --surface-hover: #3d3d3d; --primary-color: #3b82f6; --danger-color: #ef4444; --warning-color: #f59e0b; --success-color: #22c55e; --text-color: #ffffff; --text-muted: #9ca3af; --border-color: #404040; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 250px; background-color: #111; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 20px; }
+        .brand { font-size: 1.5rem; font-weight: 800; margin-bottom: 40px; color: var(--primary-color); }
+        .nav-item { padding: 12px 15px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-weight: 600; }
+        .nav-item:hover { background-color: var(--surface-color); color: white; }
+        .nav-item.active { background-color: var(--surface-color); color: var(--primary-color); border-left: 3px solid var(--primary-color); }
+        .user-profile { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); font-size: 0.9rem; }
+        .logout-link { color: var(--danger-color); cursor: pointer; display: block; margin-top: 10px; font-weight: 600;}
+
+        /* Main Content */
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .page-title { font-size: 2rem; font-weight: 700; }
+        
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; padding: 6px 12px; font-size: 0.8rem;}
+        .btn-warning { background-color: var(--warning-color); color: black; padding: 6px 12px; font-size: 0.8rem;}
+        .btn-secondary { background-color: var(--surface-hover); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; margin-right: 5px; }
+
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; background-color: var(--surface-color); border-radius: 8px; overflow: hidden; }
+        .data-table th, .data-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table th { background-color: #222; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;}
+        .data-table tr:hover { background-color: var(--surface-hover); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-admin { background-color: #8b5cf6; color: white; }
+        .badge-manager { background-color: #3b82f6; color: white; }
+        .badge-employee { background-color: #64748b; color: white; }
+
+        /* Input Styling */
+        .print-qty-input {
+            background: #111; border: 1px solid #444; color: white;
+            width: 50px; padding: 5px; border-radius: 4px; text-align: center;
+        }
+
+        /* Report Cards */
+        .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .report-card { background: var(--surface-color); padding: 20px; border-radius: 12px; }
+        .report-val { font-size: 2rem; font-weight: 800; margin-top: 5px; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal { background-color: var(--surface-color); width: 500px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
+        .form-input { width: 100%; padding: 10px; background-color: #111; border: 1px solid var(--border-color); color: white; border-radius: 6px; box-sizing: border-box; }
+        .form-textarea { width: 100%; padding: 10px; background-color: #111; border: 1px solid var(--border-color); color: white; border-radius: 6px; box-sizing: border-box; resize: vertical; min-height: 80px; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        /* Return List */
+        .return-list { background: #111; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto; }
+        .return-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; align-items: center; }
+
+        /* --- PRINT AREAS --- */
+        #print-container { display: none; }
+        @media print {
+            body * { visibility: hidden; height: 0; overflow: hidden; }
+            #print-container, #print-container * { visibility: visible; height: auto; overflow: visible; }
+            #print-container { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+            
+            /* Label Styles (4x6) */
+            .tag {
+                width: 2.5in; height: 1in;
+                border: 1px dashed #ccc;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                margin-bottom: 0.1in;
+                page-break-inside: avoid;
+            }
+            .tag-name { font-size: 10pt; font-weight: bold; white-space: nowrap; overflow: hidden; max-width: 90%; }
+            .tag-price { font-size: 12pt; font-weight: 800; margin-top: 2px; }
+            .tag-barcode { height: 30px; width: 80%; }
+
+            /* Receipt Styles (58mm) */
+            .receipt { width: 58mm; font-family: 'Courier New', monospace; font-size: 12px; color: black; background: white; margin-bottom: 20px; page-break-after: always; padding-bottom: 10px; border-bottom: 1px dashed #000; }
+            .receipt-center { text-align: center; margin-bottom: 10px; }
+            .receipt-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .receipt-bold { font-weight: bold; }
+            .receipt-big { font-size: 14px; font-weight: 800; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">POS Admin</div>
+        <div class="nav-item active" onclick="window.switchTab('inventory')">Inventory</div>
+        <div class="nav-item" onclick="window.switchTab('users')">Users</div>
+        <div class="nav-item" onclick="window.switchTab('transactions')">Transactions</div>
+        <div class="nav-item" onclick="window.switchTab('settings')">Settings</div>
+        
+        <div class="user-profile">
+            Logged in as: <strong id="currentUserDisplay">...</strong>
+            <br>
+            <span id="currentRoleDisplay" class="badge badge-employee" style="margin-top:5px; display:inline-block;">...</span>
+            <span class="logout-link" onclick="window.logout()">Logout</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="view-inventory">
+            <div class="header">
+                <div class="page-title">Inventory</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background: #222; padding: 5px 10px; border-radius: 6px; display:flex; align-items:center;">
+                         <span style="font-size:0.8rem; color:#888; margin-right:10px;">Labels:</span>
+                         <button class="btn btn-secondary btn-sm" onclick="window.setAllLabels(1)">Set All 1</button>
+                         <button class="btn btn-secondary btn-sm" onclick="window.setAllLabels(0)">Clear</button>
+                         <button class="btn btn-primary" onclick="window.printLabels()">Print Queue</button>
+                    </div>
+                    <button id="btnAddProduct" class="btn btn-primary" onclick="window.openProductModal()">+ Product</button>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Label Qty</th>
+                        <th>Name</th>
+                        <th>Barcode</th>
+                        <th>Category</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="view-users" style="display:none;">
+            <div class="header">
+                <div class="page-title">Users</div>
+                <button id="btnAddUser" class="btn btn-primary" onclick="window.openUserModal()">+ Add User</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>PIN</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="view-transactions" style="display:none;">
+            <div class="header">
+                <div class="page-title">Transactions</div>
+                <button class="btn btn-primary" onclick="window.printZReport()">Print Z-Report</button>
+            </div>
+            
+            <div class="report-grid">
+                <div class="report-card">
+                    <div style="color:var(--text-muted)">Today's Net Sales</div>
+                    <div class="report-val" id="todaySales">$0.00</div>
+                </div>
+                <div class="report-card">
+                    <div style="color:var(--text-muted)">Cash in Drawer</div>
+                    <div class="report-val" id="cashDrawer">$0.00</div>
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead><tr><th>Time</th><th>Type</th><th>Method</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="transactionsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="view-settings" style="display:none;">
+            <div class="header"><div class="page-title">Receipt Settings</div></div>
+            <div class="modal" style="width: 100%; max-width: 600px; position:relative; box-shadow:none; background:none;">
+                <div class="form-group">
+                    <label class="form-label">Business Name</label>
+                    <input type="text" id="settingName" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Receipt Header</label>
+                    <textarea id="settingHeader" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Receipt Footer</label>
+                    <textarea id="settingFooter" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="window.saveSettings()">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <h2 style="margin-top:0" id="prodModalTitle">Add Product</h2>
+            <input type="hidden" id="prodId">
+            <div class="form-group">
+                <label class="form-label">Product Name</label>
+                <input type="text" id="prodName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Barcode (Scan or Type)</label>
+                <input type="text" id="prodBarcode" class="form-input" placeholder="e.g. 12345678">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select id="prodCat" class="form-input">
+                    <option value="Food">Food</option>
+                    <option value="Drinks">Drinks</option>
+                    <option value="Merch">Merch</option>
+                </select>
+            </div>
+            <div class="form-group" style="display:flex; gap:10px;">
+                <div style="flex:1">
+                    <label class="form-label">Price ($)</label>
+                    <input type="number" id="prodPrice" class="form-input" step="0.01">
+                </div>
+                <div style="flex:1">
+                    <label class="form-label">Stock Qty</label>
+                    <input type="number" id="prodStock" class="form-input" value="0">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="window.closeModal('productModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.saveProduct()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <h2 style="margin-top:0" id="userModalTitle">Add User</h2>
+            <input type="hidden" id="userId">
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" id="userName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">PIN (4 digits)</label>
+                <input type="text" id="userPin" class="form-input" maxlength="4">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select id="userRole" class="form-input">
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="window.closeModal('userModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.saveUser()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="actionModal">
+        <div class="modal">
+            <h2 id="actionTitle" style="margin-top:0">Action</h2>
+            <input type="hidden" id="actionTransId">
+            <input type="hidden" id="actionType"> <div class="form-group" id="itemListGroup">
+                <label class="form-label">Select Items</label>
+                <div class="return-list" id="actionItemList">
+                    </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reason (Max 250 chars)</label>
+                <textarea id="actionReason" class="form-textarea" maxlength="250" placeholder="Reason..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payback Method</label>
+                <select id="actionPayback" class="form-input">
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card Refund</option>
+                    <option value="Store Credit">Store Credit</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="window.closeModal('actionModal')">Cancel</button>
+                <button class="btn btn-danger" id="btnConfirmAction" onclick="window.processTransactionAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-container"></div>
+
+    <script type="module">
+        import { db, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, limit, setDoc, getDoc, increment } from './firebase.js';
+
+        let inventory = [], users = [], transactions = [];
+        let receiptConfig = { businessName: "POS", header: "", footer: "" };
+        let currentUser = null;
+
+        function init() {
+            const storedUser = sessionStorage.getItem('pos_user');
+            if (!storedUser) { window.location.href = "index.html"; return; }
+            currentUser = JSON.parse(storedUser);
+
+            document.getElementById('currentUserDisplay').textContent = currentUser.name;
+            const roleBadge = document.getElementById('currentRoleDisplay');
+            roleBadge.textContent = currentUser.role;
+            roleBadge.className = `badge badge-${currentUser.role}`;
+
+            if (currentUser.role === 'employee') {
+                document.getElementById('btnAddProduct').style.display = 'none';
+                document.getElementById('btnAddUser').style.display = 'none';
+            }
+
+            setupListeners();
+            loadSettings();
+        }
+
+        function setupListeners() {
+            onSnapshot(collection(db, "products"), (snapshot) => {
+                inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.renderInventory();
+            });
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.renderUsers();
+            });
+            // Limit to last 50 transactions
+            const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(50));
+            onSnapshot(q, snap => {
+                transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderTransactions();
+            });
+        }
+
+        // --- RENDERING ---
+        window.renderInventory = function() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = inventory.map(item => `
+                <tr>
+                    <td><input type="number" min="0" value="0" class="print-qty-input" id="qty-${item.id}" data-id="${item.id}"></td>
+                    <td><strong>${item.name}</strong></td>
+                    <td style="font-family:monospace">${item.barcode || '-'}</td>
+                    <td><span class="badge" style="background:#444">${item.category}</span></td>
+                    <td style="color: ${item.stock < 5 ? '#ef4444' : '#22c55e'}">${item.stock || 0}</td>
+                    <td>$${parseFloat(item.price).toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-warning" onclick="window.editProduct('${item.id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="window.deleteItem('products', '${item.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        window.renderUsers = function() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td style="font-family:monospace; letter-spacing:3px;">${u.pin}</td>
+                    <td><strong>${u.name}</strong></td>
+                    <td><span class="badge badge-${u.role}">${u.role}</span></td>
+                    <td>
+                        <button class="btn btn-warning" onclick="window.editUser('${u.id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="window.deleteItem('users', '${u.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        window.renderTransactions = function() {
+            let netSales = 0;
+            let cashDrawer = 0;
+            const today = new Date().toDateString();
+
+            transactions.forEach(t => {
+                const tDate = new Date(t.date.seconds * 1000).toDateString();
+                // Only count valid sales for today
+                if (tDate === today && t.status !== 'void') {
+                    netSales += t.total; // t.total is negative for returns, so this math works automatically
+                    
+                    if (t.method === 'Cash') {
+                        cashDrawer += t.total; // Adds sales, subtracts returns
+                    }
+                }
+            });
+
+            document.getElementById('todaySales').textContent = `$${netSales.toFixed(2)}`;
+            document.getElementById('cashDrawer').textContent = `$${cashDrawer.toFixed(2)}`;
+
+            document.getElementById('transactionsTableBody').innerHTML = transactions.map(t => {
+                const isReturn = t.type === 'return';
+                const isVoid = t.status === 'void';
+                const color = isReturn ? '#f59e0b' : (isVoid ? '#ef4444' : '#22c55e');
+                
+                return `
+                <tr style="opacity: ${isVoid ? 0.5 : 1}">
+                    <td>${new Date(t.date.seconds * 1000).toLocaleTimeString()}</td>
+                    <td><span class="badge" style="background:${color}; color:black;">${t.type || 'sale'}</span></td>
+                    <td>${t.method}</td>
+                    <td>$${t.total.toFixed(2)}</td>
+                    <td>${t.status || 'complete'}</td>
+                    <td>
+                        ${(!isVoid && !isReturn) ? `
+                            <button class="btn btn-warning btn-sm" onclick="window.openAction('return', '${t.id}')">RTRN</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.openAction('void', '${t.id}')">VOID</button>
+                        ` : ''}
+                        <button class="btn btn-secondary btn-sm" onclick="window.reprint('${t.id}')">Print</button>
+                    </td>
+                </tr>
+            `}).join('');
+        };
+
+        // --- LABEL PRINTING ---
+        window.setAllLabels = function(val) { document.querySelectorAll('.print-qty-input').forEach(input => input.value = val); };
+
+        window.printLabels = function() {
+            const inputs = document.querySelectorAll('.print-qty-input');
             const container = document.getElementById('print-container');
-            container.innerHTML = ""; // Clear
+            container.innerHTML = ""; 
+
+            let totalLabels = 0;
+            inputs.forEach(input => {
+                const qty = parseInt(input.value);
+                const id = input.dataset.id;
+                
+                if (qty > 0) {
+                    const item = inventory.find(i => i.id === id);
+                    if (item) {
+                        for(let i=0; i < qty; i++) {
+                            const uid = `bc-${id}-${i}-${Date.now()}`;
+                            const tag = document.createElement('div');
+                            tag.className = 'tag';
+                            tag.innerHTML = `<div class="tag-name">${item.name}</div><img class="tag-barcode" id="${uid}"><div class="tag-price">$${item.price.toFixed(2)}</div>`;
+                            container.appendChild(tag);
+                            try { JsBarcode(`#${uid}`, item.barcode || item.id, { format: "CODE128", displayValue: false, height: 30, margin: 0 }); } catch(e) { console.log("Barcode error", e); }
+                            totalLabels++;
+                        }
+                    }
+                }
+            });
+
+            if (totalLabels === 0) return alert("No labels selected.");
+            window.print();
+        };
+
+        // --- ACTION LOGIC (Void / Return) ---
+        window.openAction = (type, id) => {
+            const t = transactions.find(x => x.id === id);
+            if (!t) return;
+
+            document.getElementById('actionModal').classList.add('open');
+            document.getElementById('actionType').value = type;
+            document.getElementById('actionTransId').value = id;
+            document.getElementById('actionReason').value = "";
+            document.getElementById('actionPayback').value = t.method;
+
+            const title = type === 'void' ? "VOID TRANSACTION" : "RETURN ITEMS";
+            document.getElementById('actionTitle').innerText = title;
+
+            // Render Items
+            const list = document.getElementById('actionItemList');
+            list.innerHTML = t.items.map((item, idx) => `
+                <div class="return-item">
+                    <span>${item.name} ($${item.price})</span>
+                    <label>
+                        <input type="checkbox" class="action-check" value="${idx}" 
+                        ${type === 'void' ? 'checked disabled' : ''}>
+                    </label>
+                </div>
+            `).join('');
+        };
+
+        window.processTransactionAction = async () => {
+            const type = document.getElementById('actionType').value;
+            const id = document.getElementById('actionTransId').value;
+            const reason = document.getElementById('actionReason').value;
+            const payback = document.getElementById('actionPayback').value;
+            
+            const originalT = transactions.find(x => x.id === id);
+            
+            // Get selected items
+            const checkboxes = document.querySelectorAll('.action-check:checked');
+            if (checkboxes.length === 0) return alert("Select items.");
+            if (reason.length === 0) return alert("Enter a reason.");
+
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const selectedItems = selectedIndices.map(idx => originalT.items[idx]);
+
+            // 1. Restock Selected Items
+            const restockPromises = selectedItems.map(item => 
+                updateDoc(doc(db, "products", item.id), { stock: increment(item.qty) })
+            );
+            await Promise.all(restockPromises);
+
+            if (type === 'void') {
+                // VOID
+                await updateDoc(doc(db, "sales", id), { status: 'void', voidReason: reason, voidPayback: payback });
+                printReceipt({ ...originalT, voidReason: reason, paybackMethod: payback }, 'void');
+            } 
+            else if (type === 'return') {
+                // RETURN
+                const refundTotal = selectedItems.reduce((a, b) => a + (b.price * b.qty), 0) * -1;
+                const returnData = {
+                    date: new Date(), type: 'return', parentTransId: id, items: selectedItems,
+                    total: refundTotal, method: payback, reason: reason, status: 'complete'
+                };
+                await addDoc(collection(db, "sales"), returnData);
+                printReceipt(returnData, 'return');
+            }
+            window.closeModal('actionModal');
+        };
+
+        // --- RECEIPT PRINTING ---
+        window.reprint = (id) => {
+            const t = transactions.find(x => x.id === id);
+            if(t) printReceipt(t, 'reprint');
+        };
+
+        function printReceipt(data, mode) {
+            const container = document.getElementById('print-container');
+            container.innerHTML = ""; 
 
             const createSlip = (titleOverride) => {
                 const date = data.date.seconds ? new Date(data.date.seconds * 1000).toLocaleString() : new Date().toLocaleString();
@@ -19,44 +552,21 @@ function printReceipt(data, mode) {
                     </div>
                     <hr>`;
                 
-                // Items
-                html += data.items.map(i => `
-                    <div class="receipt-line">
-                        <span>${i.qty}x ${i.name}</span>
-                        <span>$${(i.price * i.qty).toFixed(2)}</span>
-                    </div>`).join('');
+                html += data.items.map(i => `<div class="receipt-line"><span>${i.qty}x ${i.name}</span><span>$${(i.price * i.qty).toFixed(2)}</span></div>`).join('');
                 
                 html += `<hr>
-                    <div class="receipt-line receipt-bold">
-                        <span>TOTAL</span>
-                        <span>$${Math.abs(data.total).toFixed(2)} ${isNegative ? '(REFUND)' : ''}</span>
-                    </div>
-                    <div class="receipt-line">
-                        <span>METHOD</span>
-                        <span>${data.method || data.paybackMethod}</span>
-                    </div>`;
+                    <div class="receipt-line receipt-bold"><span>TOTAL</span><span>$${Math.abs(data.total).toFixed(2)} ${isNegative ? '(REFUND)' : ''}</span></div>
+                    <div class="receipt-line"><span>METHOD</span><span>${data.method || data.paybackMethod}</span></div>`;
 
-                // --- NEW: Add Details for Card/Check on Reprint ---
                 if (data.details) {
-                    if (data.method === 'Card' && data.details.txId) {
-                         html += `<div class="receipt-line"><span>Tx ID</span><span>${data.details.txId}</span></div>`;
-                    }
-                    if (data.method === 'Check' && data.details.checkNum) {
-                         html += `<div class="receipt-line"><span>Check #</span><span>${data.details.checkNum}</span></div>`;
-                    }
-                }
-                // --------------------------------------------------
-
-                if (mode === 'void' || mode === 'return') {
-                    html += `<br><div class="receipt-bold">Reason:</div><div>${data.reason || data.voidReason}</div>`;
+                    if (data.method === 'Card' && data.details.txId) html += `<div class="receipt-line"><span>Tx ID</span><span>${data.details.txId}</span></div>`;
+                    if (data.method === 'Check' && data.details.checkNum) html += `<div class="receipt-line"><span>Check #</span><span>${data.details.checkNum}</span></div>`;
                 }
 
-                if (mode === 'reprint') {
-                    html += `<br><div class="receipt-center">*** REPRINT ***</div>`;
-                }
+                if (mode === 'void' || mode === 'return') html += `<br><div class="receipt-bold">Reason:</div><div>${data.reason || data.voidReason}</div>`;
+                if (mode === 'reprint') html += `<br><div class="receipt-center">*** REPRINT ***</div>`;
 
-                html += `<br><div class="receipt-center">${(receiptConfig.footer || "").replace(/\n/g, '<br>')}</div>
-                </div>`;
+                html += `<br><div class="receipt-center">${(receiptConfig.footer || "").replace(/\n/g, '<br>')}</div></div>`;
                 return html;
             };
 
@@ -66,6 +576,57 @@ function printReceipt(data, mode) {
             } else {
                 container.innerHTML += createSlip();
             }
-
             window.print();
         }
+
+        window.printZReport = () => {
+            const total = document.getElementById('todaySales').textContent;
+            const cash = document.getElementById('cashDrawer').textContent;
+            const div = document.getElementById('print-container');
+            div.innerHTML = `<div class="receipt"><div class="receipt-center"><div class="receipt-big">Z-REPORT</div><div>${new Date().toLocaleString()}</div></div><hr><div class="receipt-line"><span>Net Sales:</span><span>${total}</span></div><div class="receipt-line"><span>Cash Drawer:</span><span>${cash}</span></div><hr><br><br><div>Signed: _________________</div></div>`;
+            window.print();
+        };
+
+        // --- GENERAL LOGIC ---
+        window.loadSettings = async () => {
+            const d = await getDoc(doc(db, "settings", "receipt"));
+            if(d.exists()) {
+                receiptConfig = d.data();
+                document.getElementById('settingName').value = receiptConfig.businessName;
+                document.getElementById('settingHeader').value = receiptConfig.header;
+                document.getElementById('settingFooter').value = receiptConfig.footer;
+            }
+        };
+        window.saveSettings = async () => {
+            const cfg = { businessName: document.getElementById('settingName').value, header: document.getElementById('settingHeader').value, footer: document.getElementById('settingFooter').value };
+            await setDoc(doc(db, "settings", "receipt"), cfg);
+            receiptConfig = cfg;
+            alert("Saved");
+        };
+
+        window.saveProduct = async () => {
+            const id = document.getElementById('prodId').value;
+            const data = { name: document.getElementById('prodName').value, barcode: document.getElementById('prodBarcode').value, category: document.getElementById('prodCat').value, price: parseFloat(document.getElementById('prodPrice').value), stock: parseInt(document.getElementById('prodStock').value) };
+            if(id) await updateDoc(doc(db,"products",id), data); else await addDoc(collection(db,"products"), data);
+            window.closeModal('productModal');
+        };
+        window.saveUser = async () => {
+            const id = document.getElementById('userId').value;
+            const data = { name: document.getElementById('userName').value, pin: document.getElementById('userPin').value, role: document.getElementById('userRole').value };
+            if(id) await updateDoc(doc(db,"users",id), data); else await addDoc(collection(db,"users"), data);
+            window.closeModal('userModal');
+        };
+
+        window.editProduct = (id) => { const item = inventory.find(i=>i.id===id); document.getElementById('prodId').value=item.id; document.getElementById('prodName').value=item.name; document.getElementById('prodBarcode').value=item.barcode||""; document.getElementById('prodCat').value=item.category; document.getElementById('prodPrice').value=item.price; document.getElementById('prodStock').value=item.stock; document.getElementById('productModal').classList.add('open'); }
+        window.editUser = (id) => { const u = users.find(i=>i.id===id); document.getElementById('userId').value=u.id; document.getElementById('userName').value=u.name; document.getElementById('userPin').value=u.pin; document.getElementById('userRole').value=u.role; document.getElementById('userModal').classList.add('open'); }
+        window.deleteItem = async (c,id) => { if(confirm("Delete?")) await deleteDoc(doc(db,c,id)); }
+        window.openProductModal = () => { document.getElementById('prodId').value=""; document.getElementById('productModal').classList.add('open'); }
+        window.openUserModal = () => { document.getElementById('userId').value=""; document.getElementById('userModal').classList.add('open'); }
+        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+        window.switchTab = (t) => { ['inventory','users','transactions','settings'].forEach(x=>document.getElementById('view-'+x).style.display=(x===t)?'block':'none'); }
+        window.logout = () => { sessionStorage.removeItem('pos_user'); window.location.href="index.html"; };
+
+        init();
+    </script>
+</body>
+</html>
