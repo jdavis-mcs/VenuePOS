@@ -6,6 +6,10 @@
     <title>POS System | Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2558/2558944.png">
     
     <style>
         :root { --bg-color: #1a1a1a; --surface-color: #2d2d2d; --surface-hover: #3d3d3d; --primary-color: #3b82f6; --danger-color: #ef4444; --warning-color: #f59e0b; --success-color: #22c55e; --text-color: #ffffff; --text-muted: #9ca3af; --border-color: #404040; }
@@ -627,6 +631,15 @@
         window.logout = () => { sessionStorage.removeItem('pos_user'); window.location.href="index.html"; };
 
         init();
+
+        // Register PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then((reg) => {
+                    console.log('Service Worker Registered');
+                });
+            });
+        }
     </script>
 </body>
 </html>
