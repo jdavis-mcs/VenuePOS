@@ -1,7 +1,7 @@
 // firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
+import { 
     getFirestore, 
     collection, 
     doc, 
@@ -15,7 +15,7 @@ import {
     limit,     // <--- Added
     getDoc,    // <--- Added
     onSnapshot,
-    increment
+    increment 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- PASTE YOUR CONFIG HERE ---
@@ -29,32 +29,29 @@ const firebaseConfig = {
   measurementId: "G-71PSSCVD73"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Enable Anonymous Auth immediately
 signInAnonymously(auth).then(() => {
     console.log("System: Connected to Backend");
 }).catch((error) => {
     console.error("Auth Error", error);
 });
 
-// Export tools
 export { 
-    getFirestore, 
+    db, 
     collection, 
     doc, 
     getDocs, 
+    getDoc, 
     addDoc, 
     deleteDoc, 
     updateDoc, 
     query, 
     where, 
-    orderBy,   // <--- Added
-    limit,     // <--- Added
-    getDoc,    // <--- Added
+    orderBy, 
+    limit,
     onSnapshot,
-    increment
+    increment 
 };
