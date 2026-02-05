@@ -1,7 +1,18 @@
 // firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDocs, addDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getFirestore, 
+  collection, 
+  doc, 
+  getDocs, 
+  addDoc, 
+  deleteDoc, 
+  updateDoc,
+  query, 
+  where, 
+  onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- PASTE YOUR CONFIG HERE ---
 const firebaseConfig = {
