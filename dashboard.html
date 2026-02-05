@@ -13,6 +13,7 @@
             --surface-hover: #3d3d3d;
             --primary-color: #3b82f6; 
             --danger-color: #ef4444;
+            --warning-color: #f59e0b;
             --success-color: #22c55e;
             --text-color: #ffffff;
             --text-muted: #9ca3af;
@@ -93,6 +94,7 @@
         }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; padding: 6px 12px; font-size: 0.8rem;}
+        .btn-warning { background-color: var(--warning-color); color: black; padding: 6px 12px; font-size: 0.8rem;}
 
         /* --- Tables --- */
         .data-table {
@@ -151,15 +153,14 @@
 
     <div class="sidebar">
         <div class="brand">POS Admin</div>
-        <div class="nav-item active" onclick="switchTab('inventory')">Inventory</div>
-        <div class="nav-item" onclick="switchTab('users')">Users</div>
-        <div class="nav-item" onclick="alert('Settings not implemented')">Settings</div>
+        <div class="nav-item active" onclick="window.switchTab('inventory')">Inventory</div>
+        <div class="nav-item" onclick="window.switchTab('users')">Users</div>
         
         <div class="user-profile">
-            Logged in as: <strong id="currentUserDisplay">Loading...</strong>
+            Logged in as: <strong id="currentUserDisplay">...</strong>
             <br>
             <span id="currentRoleDisplay" class="badge badge-employee" style="margin-top:5px; display:inline-block;">...</span>
-            <span class="logout-link" onclick="window.location.href='index.html'">Logout</span>
+            <span class="logout-link" onclick="window.logout()">Logout</span>
         </div>
     </div>
 
@@ -168,12 +169,11 @@
         <div id="view-inventory">
             <div class="header">
                 <div class="page-title">Inventory</div>
-                <button id="btnAddProduct" class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+                <button id="btnAddProduct" class="btn btn-primary" onclick="window.openProductModal()">+ Add Product</button>
             </div>
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Name</th>
                         <th>Category</th>
                         <th>Price</th>
@@ -188,7 +188,7 @@
         <div id="view-users" style="display:none;">
             <div class="header">
                 <div class="page-title">Users</div>
-                <button id="btnAddUser" class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+                <button id="btnAddUser" class="btn btn-primary" onclick="window.openUserModal()">+ Add User</button>
             </div>
             <table class="data-table">
                 <thead>
@@ -208,8 +208,8 @@
 
     <div class="modal-overlay" id="productModal">
         <div class="modal">
-            <h2 style="margin-top:0">Add Product</h2>
-            <div class="form-group">
+            <h2 style="margin-top:0" id="prodModalTitle">Add Product</h2>
+            <input type="hidden" id="prodId"> <div class="form-group">
                 <label class="form-label">Product Name</label>
                 <input type="text" id="prodName" class="form-input">
             </div>
@@ -226,16 +226,16 @@
                 <input type="number" id="prodPrice" class="form-input" step="0.01">
             </div>
             <div class="form-actions">
-                <button class="btn" style="background:transparent; color:#ccc;" onclick="closeModal('productModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveProduct()">Save</button>
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="window.closeModal('productModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.saveProduct()">Save</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="userModal">
         <div class="modal">
-            <h2 style="margin-top:0">Add User</h2>
-            <div class="form-group">
+            <h2 style="margin-top:0" id="userModalTitle">Add User</h2>
+            <input type="hidden" id="userId"> <div class="form-group">
                 <label class="form-label">Name</label>
                 <input type="text" id="userName" class="form-input">
             </div>
@@ -246,68 +246,74 @@
             <div class="form-group">
                 <label class="form-label">Role</label>
                 <select id="userRole" class="form-input">
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
+                    <option value="employee">Employee (Sales Only)</option>
+                    <option value="manager">Manager (Sales + Inventory)</option>
+                    <option value="admin">Admin (Full Control)</option>
                 </select>
             </div>
             <div class="form-actions">
-                <button class="btn" style="background:transparent; color:#ccc;" onclick="closeModal('userModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveUser()">Save</button>
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="window.closeModal('userModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.saveUser()">Save</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-        import { db, collection, addDoc, deleteDoc, doc, onSnapshot } from './firebase.js';
+        import { db, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from './firebase.js';
 
-        // --- State ---
         let inventory = [];
         let users = [];
-        
-        // Default to Admin for this view since we are in the "Management" panel
-        const CURRENT_USER_ROLE = "admin"; 
-        const PERMISSIONS = {
-            admin:    { canAdd: true, canDelete: true },
-            manager:  { canAdd: true, canDelete: false },
-            employee: { canAdd: false, canDelete: false }
-        };
-        const myPerms = PERMISSIONS[CURRENT_USER_ROLE];
+        let currentUser = null;
 
-        // --- Initialization ---
+        // --- Init ---
         function init() {
-            // Setup Listeners (Real-time updates)
+            // Check Session
+            const storedUser = sessionStorage.getItem('pos_user');
+            if (!storedUser) {
+                window.location.href = "index.html";
+                return;
+            }
+            currentUser = JSON.parse(storedUser);
+
+            // Setup UI
+            document.getElementById('currentUserDisplay').textContent = currentUser.name;
+            const roleBadge = document.getElementById('currentRoleDisplay');
+            roleBadge.textContent = currentUser.role;
+            roleBadge.className = `badge badge-${currentUser.role}`;
+
+            // Restrict Buttons based on Role
+            if (currentUser.role === 'employee') {
+                document.getElementById('btnAddProduct').style.display = 'none';
+                document.getElementById('btnAddUser').style.display = 'none';
+            }
+
             setupListeners();
-            
-            // UI Setup
-            document.getElementById('currentRoleDisplay').textContent = CURRENT_USER_ROLE;
-            document.getElementById('currentRoleDisplay').className = `badge badge-${CURRENT_USER_ROLE}`;
         }
 
         function setupListeners() {
-            // Inventory Listener
+            // Inventory
             onSnapshot(collection(db, "products"), (snapshot) => {
                 inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderInventory();
+                window.renderInventory();
             });
 
-            // Users Listener
+            // Users
             onSnapshot(collection(db, "users"), (snapshot) => {
                 users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderUsers();
+                window.renderUsers();
             });
         }
 
-        // --- Render Functions ---
-        window.renderInventory = function() { // Attached to window for HTML access if needed, though strictly module-scoped is better
+        // --- Render ---
+        window.renderInventory = function() {
             const tbody = document.getElementById('inventoryTableBody');
             tbody.innerHTML = inventory.map(item => `
                 <tr>
-                    <td style="font-family:monospace; font-size:0.8rem">${item.id.slice(0,4)}...</td>
                     <td><strong>${item.name}</strong></td>
                     <td><span class="badge" style="background:#444">${item.category}</span></td>
                     <td>$${parseFloat(item.price).toFixed(2)}</td>
                     <td>
+                        <button class="btn btn-warning" onclick="window.editProduct('${item.id}')">Edit</button>
                         <button class="btn btn-danger" onclick="window.deleteItem('products', '${item.id}')">Delete</button>
                     </td>
                 </tr>
@@ -318,67 +324,135 @@
             const tbody = document.getElementById('usersTableBody');
             tbody.innerHTML = users.map(u => `
                 <tr>
-                    <td>****</td>
+                    <td style="font-family:monospace; letter-spacing:3px;">${u.pin}</td>
                     <td><strong>${u.name}</strong></td>
                     <td><span class="badge badge-${u.role}">${u.role}</span></td>
                     <td>
+                        <button class="btn btn-warning" onclick="window.editUser('${u.id}')">Edit</button>
                         <button class="btn btn-danger" onclick="window.deleteItem('users', '${u.id}')">Delete</button>
                     </td>
                 </tr>
             `).join('');
         };
 
-        // --- Actions ---
-        // We attach these to 'window' because module scripts have their own scope
-        // and standard HTML onclick="" attributes can't see them otherwise.
-        
-        window.deleteItem = async function(collectionName, id) {
-            if(!confirm("Permanently delete this item?")) return;
-            try {
-                await deleteDoc(doc(db, collectionName, id));
-            } catch (e) {
-                console.error("Error deleting:", e);
-                alert("Error deleting item");
-            }
+        // --- Logic: USERS ---
+        window.openUserModal = () => {
+            document.getElementById('userModalTitle').innerText = "Add User";
+            document.getElementById('userId').value = ""; // Clear ID
+            document.getElementById('userName').value = "";
+            document.getElementById('userPin').value = "";
+            document.getElementById('userRole').value = "employee";
+            document.getElementById('userModal').classList.add('open');
         };
 
-        window.saveProduct = async function() {
-            const name = document.getElementById('prodName').value;
-            const category = document.getElementById('prodCat').value;
-            const price = parseFloat(document.getElementById('prodPrice').value);
+        window.editUser = (id) => {
+            const user = users.find(u => u.id === id);
+            if (!user) return;
 
-            if (name && price) {
-                await addDoc(collection(db, "products"), { name, category, price });
-                window.closeModal('productModal');
-                document.getElementById('prodName').value = '';
-                document.getElementById('prodPrice').value = '';
-            }
+            document.getElementById('userModalTitle').innerText = "Edit User";
+            document.getElementById('userId').value = user.id; // Set ID
+            document.getElementById('userName').value = user.name;
+            document.getElementById('userPin').value = user.pin;
+            document.getElementById('userRole').value = user.role;
+            document.getElementById('userModal').classList.add('open');
         };
 
         window.saveUser = async function() {
+            const id = document.getElementById('userId').value;
             const name = document.getElementById('userName').value;
             const pin = document.getElementById('userPin').value;
             const role = document.getElementById('userRole').value;
 
-            if (name && pin) {
-                await addDoc(collection(db, "users"), { name, pin, role });
+            if (!name || !pin) return alert("Name and PIN required");
+
+            try {
+                if (id) {
+                    // Update existing
+                    await updateDoc(doc(db, "users", id), { name, pin, role });
+                } else {
+                    // Create new
+                    await addDoc(collection(db, "users"), { name, pin, role });
+                }
                 window.closeModal('userModal');
-                document.getElementById('userName').value = '';
-                document.getElementById('userPin').value = '';
+            } catch (e) {
+                console.error(e);
+                alert("Error saving user");
             }
         };
 
-        // Navigation & Modal Helpers
-        window.switchTab = (tab) => {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            // Note: 'event' usage in modules can be tricky, relying on simple ID logic here
-            document.getElementById('view-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
-            document.getElementById('view-users').style.display = tab === 'users' ? 'block' : 'none';
+        // --- Logic: PRODUCTS ---
+        window.openProductModal = () => {
+            document.getElementById('prodModalTitle').innerText = "Add Product";
+            document.getElementById('prodId').value = "";
+            document.getElementById('prodName').value = "";
+            document.getElementById('prodPrice').value = "";
+            document.getElementById('productModal').classList.add('open');
         };
 
-        window.openProductModal = () => document.getElementById('productModal').classList.add('open');
-        window.openUserModal = () => document.getElementById('userModal').classList.add('open');
+        window.editProduct = (id) => {
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('prodModalTitle').innerText = "Edit Product";
+            document.getElementById('prodId').value = item.id;
+            document.getElementById('prodName').value = item.name;
+            document.getElementById('prodCat').value = item.category;
+            document.getElementById('prodPrice').value = item.price;
+            document.getElementById('productModal').classList.add('open');
+        };
+
+        window.saveProduct = async function() {
+            const id = document.getElementById('prodId').value;
+            const name = document.getElementById('prodName').value;
+            const category = document.getElementById('prodCat').value;
+            const price = parseFloat(document.getElementById('prodPrice').value);
+
+            if (!name || isNaN(price)) return alert("Invalid Input");
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, "products", id), { name, category, price });
+                } else {
+                    await addDoc(collection(db, "products"), { name, category, price });
+                }
+                window.closeModal('productModal');
+            } catch (e) {
+                console.error(e);
+                alert("Error saving product");
+            }
+        };
+
+        // --- Shared ---
+        window.deleteItem = async function(collectionName, id) {
+            if(!confirm("Permanently delete this?")) return;
+            try {
+                await deleteDoc(doc(db, collectionName, id));
+            } catch (e) {
+                console.error(e);
+                alert("Error deleting item");
+            }
+        };
+
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            // Very basic tab switching for simplicity
+            if(tab === 'inventory') {
+                document.querySelectorAll('.nav-item')[0].classList.add('active');
+                document.getElementById('view-inventory').style.display = 'block';
+                document.getElementById('view-users').style.display = 'none';
+            } else {
+                document.querySelectorAll('.nav-item')[1].classList.add('active');
+                document.getElementById('view-inventory').style.display = 'none';
+                document.getElementById('view-users').style.display = 'block';
+            }
+        };
+
         window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+        
+        window.logout = function() {
+            sessionStorage.removeItem('pos_user');
+            window.location.href = "index.html";
+        };
 
         // Start
         init();
