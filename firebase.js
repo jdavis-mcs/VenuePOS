@@ -30,21 +30,23 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Enable Anonymous Auth immediately so rules pass
+// Enable Anonymous Auth immediately
 signInAnonymously(auth).then(() => {
     console.log("System: Connected to Backend");
 }).catch((error) => {
     console.error("Auth Error", error);
 });
 
-// Export tools for other files to use
-export { db, 
-        collection, 
-        doc, getDocs, 
-        addDoc, 
-        deleteDoc, 
-        updateDoc,
-        query, 
-        where, 
-        onSnapshot 
+// Export tools
+export { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    addDoc, 
+    deleteDoc, 
+    updateDoc, // <--- Added this
+    query, 
+    where, 
+    onSnapshot 
 };
