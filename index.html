@@ -3,24 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>POS System | Register</title>
+    <title>POS System | Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
             --bg-color: #1a1a1a;
             --surface-color: #2d2d2d;
-            --surface-hover: #3d3d3d;
             --primary-color: #3b82f6; 
-            --accent-color: #8b5cf6; /* Purple for Categories */
             --text-color: #ffffff;
-            --text-muted: #9ca3af;
-            --border-color: #404040;
+            --error-color: #ef4444;
             --success-color: #22c55e;
-            --danger-color: #ef4444;
         }
-
-        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -30,366 +24,222 @@
             font-family: 'Inter', sans-serif;
             height: 100vh;
             display: flex;
-            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; 
         }
 
-        /* --- LEFT PANEL: Product Grid --- */
-        .catalog-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border-color);
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
             padding: 20px;
+            text-align: center;
         }
 
-        /* Categories Bar */
-        .category-tabs {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 15px;
+        h1 {
+            font-weight: 800;
             margin-bottom: 10px;
-            scrollbar-width: none; /* Hide scrollbar Firefox */
+            letter-spacing: -1px;
         }
-        .category-tabs::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome */
 
-        .tab {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
+        .status-message {
+            height: 24px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
             color: var(--text-color);
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            white-space: nowrap;
-            font-weight: 600;
-            transition: all 0.2s;
+            opacity: 0.7;
         }
 
-        .tab.active {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-        }
+        .status-message.error { color: var(--error-color); opacity: 1; }
+        .status-message.success { color: var(--success-color); opacity: 1; }
 
-        /* Grid */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px;
-            overflow-y: auto;
-            padding-bottom: 20px;
-        }
-
-        .product-card {
+        /* PIN Display */
+        .pin-display {
             background-color: var(--surface-color);
             border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 120px;
-            cursor: pointer;
-            transition: transform 0.1s, background-color 0.1s;
-            border: 1px solid transparent;
-        }
-
-        .product-card:active {
-            transform: scale(0.98);
-            background-color: var(--surface-hover);
-        }
-
-        .product-name {
-            font-weight: 600;
-            font-size: 1rem;
-            line-height: 1.3;
-        }
-
-        .product-price {
-            color: var(--primary-color);
-            font-weight: 800;
-            font-size: 1.1rem;
-        }
-
-        /* --- RIGHT PANEL: Ticket / Cart --- */
-        .ticket-section {
-            width: 380px;
-            background-color: #222;
-            display: flex;
-            flex-direction: column;
-            box-shadow: -4px 0 10px rgba(0,0,0,0.3);
-        }
-
-        /* User Header */
-        .ticket-header {
-            padding: 15px;
-            background-color: var(--surface-color);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .user-badge { font-size: 0.9rem; color: var(--text-muted); }
-        .logout-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; }
-
-        /* Cart Items List */
-        .cart-items {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .item-info { flex: 1; }
-        .item-name { display: block; font-weight: 600; }
-        .item-price { font-size: 0.85rem; color: var(--text-muted); }
-        
-        .item-qty-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background-color: var(--bg-color);
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-        .qty-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            border: none;
-            background-color: var(--surface-color);
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* Totals Area */
-        .totals-area {
-            background-color: var(--surface-color);
             padding: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .total-row {
+            margin-bottom: 30px;
+            font-size: 2rem;
+            letter-spacing: 10px;
+            min-height: 40px;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        .grand-total {
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--text-color);
-            margin: 15px 0 20px 0;
+        .pin-dot {
+            width: 15px;
+            height: 15px;
+            background-color: #555;
+            border-radius: 50%;
+            margin: 0 5px;
+            transition: background-color 0.1s ease;
         }
 
-        /* Action Buttons */
-        .actions-grid {
+        .pin-dot.active {
+            background-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        /* Keypad Grid */
+        .keypad {
             display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
         }
 
-        .action-btn {
-            padding: 15px;
-            border-radius: 8px;
+        .key {
+            background-color: var(--surface-color);
             border: none;
-            font-weight: 700;
-            font-size: 1rem;
+            color: white;
+            padding: 25px 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-radius: 12px;
             cursor: pointer;
-            text-transform: uppercase;
+            transition: transform 0.1s, background-color 0.2s;
+            user-select: none;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
         }
 
-        .btn-cancel { background-color: var(--surface-hover); color: var(--text-muted); }
-        .btn-pay { background-color: var(--success-color); color: white; }
+        .key:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+            background-color: #404040;
+        }
+
+        .key.clear { background-color: #3f3f3f; color: #ccc; }
+        .key.enter { background-color: var(--primary-color); }
 
     </style>
 </head>
 <body>
 
-    <div class="catalog-section">
-        <div class="category-tabs" id="categoryTabs">
-            </div>
+    <div class="auth-container">
+        <h1>POS Terminal</h1>
+        <div id="status" class="status-message">Enter Employee PIN</div>
 
-        <div class="product-grid" id="productGrid">
-            </div>
-    </div>
-
-    <div class="ticket-section">
-        <div class="ticket-header">
-            <span class="user-badge" id="userInfo">Cashier: 0000</span>
-            <button class="logout-btn" onclick="logout()">LOGOUT</button>
+        <div class="pin-display" id="pinDisplay">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
         </div>
 
-        <div class="cart-items" id="cartContainer">
-            <div style="text-align:center; color: #555; margin-top: 50px;">Ticket Empty</div>
-        </div>
-
-        <div class="totals-area">
-            <div class="total-row">
-                <span>Subtotal</span>
-                <span id="subTotalDisplay">$0.00</span>
-            </div>
-            <div class="total-row">
-                <span>Tax (7%)</span>
-                <span id="taxDisplay">$0.00</span>
-            </div>
-            <div class="grand-total">
-                <span>Total</span>
-                <span id="totalDisplay">$0.00</span>
-            </div>
-
-            <div class="actions-grid">
-                <button class="action-btn btn-cancel" onclick="clearCart()">Void</button>
-                <button class="action-btn btn-pay" onclick="initiatePayment()">Pay</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // --- Mock Data (Replace with Firebase Firestore later) ---
-        const PRODUCTS = [
-            { id: 1, name: "Double Burger", price: 12.50, category: "Food" },
-            { id: 2, name: "Cheese Pizza", price: 14.00, category: "Food" },
-            { id: 3, name: "Fries (L)", price: 4.50, category: "Food" },
-            { id: 4, name: "Coca Cola", price: 2.50, category: "Drinks" },
-            { id: 5, name: "Iced Tea", price: 3.00, category: "Drinks" },
-            { id: 6, name: "Draft Beer", price: 6.00, category: "Drinks" },
-            { id: 7, name: "T-Shirt", price: 25.00, category: "Merch" },
-            { id: 8, name: "Hoodie", price: 45.00, category: "Merch" },
-            { id: 9, name: "Stickers", price: 5.00, category: "Merch" },
-        ];
-
-        const CATEGORIES = ["All", "Food", "Drinks", "Merch"];
-
-        // --- State ---
-        let cart = []; // Array of { id, qty, ...product }
-        let currentCategory = "All";
-
-        // --- Initialization ---
-        function init() {
-            renderCategories();
-            renderGrid();
-        }
-
-        // --- Render Functions ---
-        function renderCategories() {
-            const container = document.getElementById('categoryTabs');
-            container.innerHTML = CATEGORIES.map(cat => `
-                <button class="tab ${cat === currentCategory ? 'active' : ''}" 
-                        onclick="setCategory('${cat}')">
-                    ${cat}
-                </button>
-            `).join('');
-        }
-
-        function renderGrid() {
-            const container = document.getElementById('productGrid');
-            const filtered = currentCategory === "All" 
-                ? PRODUCTS 
-                : PRODUCTS.filter(p => p.category === currentCategory);
-
-            container.innerHTML = filtered.map(p => `
-                <div class="product-card" onclick="addToCart(${p.id})">
-                    <span class="product-name">${p.name}</span>
-                    <span class="product-price">$${p.price.toFixed(2)}</span>
-                </div>
-            `).join('');
-        }
-
-        function renderCart() {
-            const container = document.getElementById('cartContainer');
+        <div class="keypad">
+            <button class="key" onclick="window.press(1)">1</button>
+            <button class="key" onclick="window.press(2)">2</button>
+            <button class="key" onclick="window.press(3)">3</button>
             
-            if (cart.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color: #555; margin-top: 50px;">Ticket Empty</div>`;
-                updateTotals();
-                return;
+            <button class="key" onclick="window.press(4)">4</button>
+            <button class="key" onclick="window.press(5)">5</button>
+            <button class="key" onclick="window.press(6)">6</button>
+            
+            <button class="key" onclick="window.press(7)">7</button>
+            <button class="key" onclick="window.press(8)">8</button>
+            <button class="key" onclick="window.press(9)">9</button>
+            
+            <button class="key clear" onclick="window.clearPin()">CLR</button>
+            <button class="key" onclick="window.press(0)">0</button>
+            <button class="key enter" onclick="window.submitPin()">→</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, query, where } from './firebase.js';
+
+        const MAX_PIN_LENGTH = 4;
+        let currentPin = "";
+        const displayContainer = document.getElementById('pinDisplay');
+        const dots = displayContainer.getElementsByClassName('pin-dot');
+        const statusEl = document.getElementById('status');
+
+        window.updateDisplay = function() {
+            for (let i = 0; i < dots.length; i++) {
+                dots[i].classList.toggle('active', i < currentPin.length);
             }
+        };
 
-            container.innerHTML = cart.map((item, index) => `
-                <div class="cart-item">
-                    <div class="item-info">
-                        <span class="item-name">${item.name}</span>
-                        <span class="item-price">$${(item.price * item.qty).toFixed(2)}</span>
-                    </div>
-                    <div class="item-qty-controls">
-                        <button class="qty-btn" onclick="updateQty(${index}, -1)">-</button>
-                        <span>${item.qty}</span>
-                        <button class="qty-btn" onclick="updateQty(${index}, 1)">+</button>
-                    </div>
-                </div>
-            `).join('');
-
-            updateTotals();
-        }
-
-        function updateTotals() {
-            const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-            const tax = subtotal * 0.07; // 7% Tax
-            const total = subtotal + tax;
-
-            document.getElementById('subTotalDisplay').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('taxDisplay').textContent = `$${tax.toFixed(2)}`;
-            document.getElementById('totalDisplay').textContent = `$${total.toFixed(2)}`;
-        }
-
-        // --- Logic ---
-        function setCategory(cat) {
-            currentCategory = cat;
-            renderCategories();
-            renderGrid();
-        }
-
-        function addToCart(id) {
-            const product = PRODUCTS.find(p => p.id === id);
-            const existing = cart.find(item => item.id === id);
-
-            if (existing) {
-                existing.qty++;
-            } else {
-                cart.push({ ...product, qty: 1 });
+        window.press = function(num) {
+            if (currentPin.length < MAX_PIN_LENGTH) {
+                currentPin += num;
+                window.updateDisplay();
             }
-            renderCart();
-        }
+        };
 
-        function updateQty(index, change) {
-            cart[index].qty += change;
-            if (cart[index].qty <= 0) {
-                cart.splice(index, 1);
+        window.clearPin = function() {
+            currentPin = "";
+            window.updateDisplay();
+            window.setStatus("Enter Employee PIN", "");
+        };
+
+        window.setStatus = function(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = 'status-message ' + type;
+        };
+
+        window.submitPin = async function() {
+            if (currentPin.length === 0) return;
+
+            window.setStatus("Verifying...", "");
+            
+            try {
+                // Query Firestore for a user with this PIN
+                const q = query(collection(db, "users"), where("pin", "==", currentPin));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = userDoc.data();
+                    
+                    window.setStatus(`Welcome, ${userData.name}!`, "success");
+                    
+                    // Save session
+                    sessionStorage.setItem('pos_user', JSON.stringify({
+                        id: userDoc.id,
+                        name: userData.name,
+                        role: userData.role
+                    }));
+
+                    // Route based on role
+                    setTimeout(() => {
+                        // If Admin/Manager, ask where they want to go
+                        if(userData.role === 'admin' || userData.role === 'manager') {
+                             if(confirm("Press OK for Dashboard, Cancel for Register.")) {
+                                 window.location.href = "dashboard.html";
+                                 return;
+                             }
+                        }
+                        // Default to Register
+                        window.location.href = "register.html";
+                    }, 500);
+
+                } else {
+                    window.setStatus("Invalid PIN", "error");
+                    window.shakeDisplay();
+                    setTimeout(window.clearPin, 500);
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                window.setStatus("Network Error", "error");
             }
-            renderCart();
-        }
+        };
 
-        function clearCart() {
-            if(confirm("Void current ticket?")) {
-                cart = [];
-                renderCart();
-            }
-        }
-
-        function initiatePayment() {
-            if (cart.length === 0) return alert("Cart is empty");
-            const total = document.getElementById('totalDisplay').textContent;
-            alert(`Opening Payment Modal for ${total}`);
-            // Logic for Stripe Payment Intent goes here next
-        }
-
-        function logout() {
-            window.location.href = "index.html"; // Back to auth
-        }
-
-        // Start
-        init();
-
+        window.shakeDisplay = function() {
+            displayContainer.style.transform = "translateX(10px)";
+            setTimeout(() => {
+                displayContainer.style.transform = "translateX(-10px)";
+                setTimeout(() => { displayContainer.style.transform = "translateX(0)"; }, 100);
+            }, 100);
+        };
+        
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') window.press(e.key);
+            if (e.key === 'Backspace') window.clearPin();
+            if (e.key === 'Enter') window.submitPin();
+        });
     </script>
 </body>
 </html>
