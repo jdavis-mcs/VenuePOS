@@ -69,15 +69,54 @@
 
         /* --- PRINT AREAS --- */
         #print-container { display: none; }
+       /* --- PRINT AREAS --- */
+        #print-container { display: none; }
         @media print {
-            body * { visibility: hidden; height: 0; overflow: hidden; }
-            #print-container, #print-container * { visibility: visible; height: auto; overflow: visible; }
-            #print-container { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-            .tag { width: 2.5in; height: 1in; border: 1px dashed #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 0.1in; page-break-inside: avoid; }
+            /* 1. Hide the web interface */
+            body > * { display: none !important; }
+
+            /* 2. Show and position the Print Container */
+            #print-container { 
+                display: block !important; /* <--- THIS WAS MISSING */
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                margin: 0; 
+                padding: 0;
+                visibility: visible;
+            }
+
+            /* 3. Ensure contents are visible */
+            #print-container * { 
+                visibility: visible; 
+            }
+
+            /* Label Styles (4x6) */
+            .tag {
+                width: 2.5in; height: 1in;
+                border: 1px dashed #ccc;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                margin-bottom: 0.1in;
+                page-break-inside: avoid;
+            }
             .tag-name { font-size: 10pt; font-weight: bold; white-space: nowrap; overflow: hidden; max-width: 90%; }
             .tag-price { font-size: 12pt; font-weight: 800; margin-top: 2px; }
             .tag-barcode { height: 30px; width: 80%; }
-            .receipt { width: 58mm; font-family: 'Courier New', monospace; font-size: 12px; color: black; background: white; margin-bottom: 20px; page-break-after: always; padding-bottom: 10px; border-bottom: 1px dashed #000; }
+
+            /* Receipt Styles (58mm) */
+            .receipt { 
+                width: 58mm; 
+                font-family: 'Courier New', monospace; 
+                font-size: 12px; 
+                color: black; 
+                background: white; 
+                margin-bottom: 20px; 
+                page-break-after: always; 
+                padding-bottom: 10px; 
+                border-bottom: 1px dashed #000; 
+                display: block; /* Ensure receipt is block level */
+            }
             .receipt-center { text-align: center; margin-bottom: 10px; }
             .receipt-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
             .receipt-bold { font-weight: bold; }
