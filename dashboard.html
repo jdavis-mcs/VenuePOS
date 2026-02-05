@@ -258,140 +258,130 @@
         </div>
     </div>
 
-    <script>
-        // --- Mock Data ---
-        let inventory = [
-            { id: 1, name: "Double Burger", category: "Food", price: 12.50 },
-            { id: 4, name: "Coca Cola", category: "Drinks", price: 2.50 },
-        ];
+    <script type="module">
+        import { db, collection, addDoc, deleteDoc, doc, onSnapshot } from './firebase.js';
 
-        let users = [
-            { pin: "1337", name: "Manager", role: "admin" }, // Using 'admin' for Full Access
-            { pin: "0000", name: "Cashier", role: "employee" },
-            { pin: "1234", name: "Shift Lead", role: "manager" } 
-        ];
-
-        // --- Simulated Auth State ---
-        // Change this variable to test different views: 'admin', 'manager', 'employee'
+        // --- State ---
+        let inventory = [];
+        let users = [];
+        
+        // Default to Admin for this view since we are in the "Management" panel
         const CURRENT_USER_ROLE = "admin"; 
-        const CURRENT_USER_NAME = "Admin User";
-
-        // --- Permissions Logic ---
         const PERMISSIONS = {
-            admin:    { canAdd: true, canDelete: true, canViewUsers: true },
-            manager:  { canAdd: true, canDelete: false, canViewUsers: true },
-            employee: { canAdd: false, canDelete: false, canViewUsers: true } // View only
+            admin:    { canAdd: true, canDelete: true },
+            manager:  { canAdd: true, canDelete: false },
+            employee: { canAdd: false, canDelete: false }
         };
-
         const myPerms = PERMISSIONS[CURRENT_USER_ROLE];
 
         // --- Initialization ---
         function init() {
-            // Setup Profile UI
-            document.getElementById('currentUserDisplay').textContent = CURRENT_USER_NAME;
-            const roleBadge = document.getElementById('currentRoleDisplay');
-            roleBadge.textContent = CURRENT_USER_ROLE;
-            roleBadge.className = `badge badge-${CURRENT_USER_ROLE}`;
-
-            // Hide/Show Create Buttons based on Role
-            if (!myPerms.canAdd) {
-                document.getElementById('btnAddProduct').style.display = 'none';
-                document.getElementById('btnAddUser').style.display = 'none';
-            }
-
-            renderInventory();
-            renderUsers();
+            // Setup Listeners (Real-time updates)
+            setupListeners();
+            
+            // UI Setup
+            document.getElementById('currentRoleDisplay').textContent = CURRENT_USER_ROLE;
+            document.getElementById('currentRoleDisplay').className = `badge badge-${CURRENT_USER_ROLE}`;
         }
 
-        // --- Navigation ---
-        function switchTab(tab) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('view-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
-            document.getElementById('view-users').style.display = tab === 'users' ? 'block' : 'none';
+        function setupListeners() {
+            // Inventory Listener
+            onSnapshot(collection(db, "products"), (snapshot) => {
+                inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderInventory();
+            });
+
+            // Users Listener
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderUsers();
+            });
         }
 
         // --- Render Functions ---
-        function renderInventory() {
+        window.renderInventory = function() { // Attached to window for HTML access if needed, though strictly module-scoped is better
             const tbody = document.getElementById('inventoryTableBody');
-            tbody.innerHTML = inventory.map((item, index) => `
+            tbody.innerHTML = inventory.map(item => `
                 <tr>
-                    <td>#${item.id}</td>
+                    <td style="font-family:monospace; font-size:0.8rem">${item.id.slice(0,4)}...</td>
                     <td><strong>${item.name}</strong></td>
                     <td><span class="badge" style="background:#444">${item.category}</span></td>
-                    <td>$${item.price.toFixed(2)}</td>
+                    <td>$${parseFloat(item.price).toFixed(2)}</td>
                     <td>
-                        ${myPerms.canDelete ? `<button class="btn btn-danger" onclick="deleteItem('inv', ${index})">Delete</button>` : '<span style="color:#555; font-size:0.8rem">Read Only</span>'}
+                        <button class="btn btn-danger" onclick="window.deleteItem('products', '${item.id}')">Delete</button>
                     </td>
                 </tr>
             `).join('');
-        }
+        };
 
-        function renderUsers() {
+        window.renderUsers = function() {
             const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = users.map((u, index) => `
+            tbody.innerHTML = users.map(u => `
                 <tr>
                     <td>****</td>
                     <td><strong>${u.name}</strong></td>
                     <td><span class="badge badge-${u.role}">${u.role}</span></td>
                     <td>
-                        ${myPerms.canDelete ? `<button class="btn btn-danger" onclick="deleteItem('usr', ${index})">Delete</button>` : '<span style="color:#555; font-size:0.8rem">Read Only</span>'}
+                        <button class="btn btn-danger" onclick="window.deleteItem('users', '${u.id}')">Delete</button>
                     </td>
                 </tr>
             `).join('');
-        }
+        };
 
         // --- Actions ---
-        function deleteItem(type, index) {
-            if (!myPerms.canDelete) return alert("Access Denied");
-            
-            if (confirm("Are you sure? This cannot be undone.")) {
-                if (type === 'inv') inventory.splice(index, 1);
-                if (type === 'usr') users.splice(index, 1);
-                renderInventory();
-                renderUsers();
+        // We attach these to 'window' because module scripts have their own scope
+        // and standard HTML onclick="" attributes can't see them otherwise.
+        
+        window.deleteItem = async function(collectionName, id) {
+            if(!confirm("Permanently delete this item?")) return;
+            try {
+                await deleteDoc(doc(db, collectionName, id));
+            } catch (e) {
+                console.error("Error deleting:", e);
+                alert("Error deleting item");
             }
-        }
+        };
 
-        function saveProduct() {
+        window.saveProduct = async function() {
             const name = document.getElementById('prodName').value;
-            const cat = document.getElementById('prodCat').value;
+            const category = document.getElementById('prodCat').value;
             const price = parseFloat(document.getElementById('prodPrice').value);
 
             if (name && price) {
-                inventory.push({ id: Date.now(), name, category: cat, price });
-                closeModal('productModal');
-                renderInventory();
-                // Clear form
+                await addDoc(collection(db, "products"), { name, category, price });
+                window.closeModal('productModal');
                 document.getElementById('prodName').value = '';
                 document.getElementById('prodPrice').value = '';
             }
-        }
+        };
 
-        function saveUser() {
+        window.saveUser = async function() {
             const name = document.getElementById('userName').value;
             const pin = document.getElementById('userPin').value;
             const role = document.getElementById('userRole').value;
 
             if (name && pin) {
-                users.push({ pin, name, role });
-                closeModal('userModal');
-                renderUsers();
-                // Clear form
+                await addDoc(collection(db, "users"), { name, pin, role });
+                window.closeModal('userModal');
                 document.getElementById('userName').value = '';
                 document.getElementById('userPin').value = '';
             }
-        }
+        };
 
-        // --- Modal Control ---
-        function openProductModal() { document.getElementById('productModal').classList.add('open'); }
-        function openUserModal() { document.getElementById('userModal').classList.add('open'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        // Navigation & Modal Helpers
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            // Note: 'event' usage in modules can be tricky, relying on simple ID logic here
+            document.getElementById('view-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
+            document.getElementById('view-users').style.display = tab === 'users' ? 'block' : 'none';
+        };
+
+        window.openProductModal = () => document.getElementById('productModal').classList.add('open');
+        window.openUserModal = () => document.getElementById('userModal').classList.add('open');
+        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
 
         // Start
         init();
-
     </script>
 </body>
 </html>
