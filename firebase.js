@@ -27,4 +27,13 @@ signInAnonymously(auth).then(() => {
 });
 
 // Export tools for other files to use
-export { db, collection, doc, getDocs, addDoc, deleteDoc, query, where, onSnapshot };
+export { db, 
+        collection, 
+        doc, getDocs, 
+        addDoc, 
+        deleteDoc, 
+        updateDoc,
+        query, 
+        where, 
+        onSnapshot 
+};
