@@ -98,6 +98,25 @@
             .receipt-big { font-size: 14px; font-weight: 800; }
         }
 
+        /* Add to existing CSS */
+        body {
+            overscroll-behavior-y: none; /* Prevents pull-to-refresh */
+            -webkit-tap-highlight-color: transparent; /* Removes tap flash */
+        }
+        
+        /* Make scrollable areas smooth on touch */
+        .cart-items, .product-grid, .main-content, .return-list {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Optimization for Tablet Landscape */
+        @media (max-width: 1024px) {
+            .sidebar { width: 200px; } /* Slimmer sidebar */
+            .ticket-section { width: 320px; } /* Slimmer cart */
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); } /* Smaller cards */
+            .key { padding: 20px 0; } /* Larger touch targets for PIN pad */
+        }
+
     </style>
 </head>
 <body>
