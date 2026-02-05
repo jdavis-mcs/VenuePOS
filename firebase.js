@@ -11,7 +11,8 @@ import {
   updateDoc,
   query, 
   where, 
-  onSnapshot 
+  onSnapshot,
+  increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- PASTE YOUR CONFIG HERE ---
@@ -48,5 +49,6 @@ export {
     updateDoc, // <--- Added this
     query, 
     where, 
-    onSnapshot 
+    onSnapshot,
+    increment
 };
