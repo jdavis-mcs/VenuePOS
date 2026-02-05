@@ -385,11 +385,35 @@
             window.location.href = "index.html";
         };
 
-        window.initiatePayment = function() {
-            if (cart.length === 0) return alert("Cart is empty");
-            const total = document.getElementById('totalDisplay').textContent;
-            alert(`Ready to charge ${total}. (Stripe integration next)`);
-        };
+        window.initiatePayment = async function() {
+        if (cart.length === 0) return alert("Cart is empty");
+        
+        const total = document.getElementById('totalDisplay').textContent;
+        if(!confirm(`Charge ${total} and complete sale?`)) return;
+
+        // 1. Process "Payment" (Simulated)
+        // In real life, Stripe logic goes here.
+        
+        // 2. Decrement Stock
+        try {
+            const updates = cart.map(item => {
+                const productRef = doc(db, "products", item.id);
+                return updateDoc(productRef, {
+                    stock: increment(-item.qty)
+                });
+            });
+
+            await Promise.all(updates);
+            
+            alert("Sale Complete!");
+            cart = [];
+            window.renderCart();
+            
+        } catch (error) {
+            console.error("Stock update failed", error);
+            alert("Error updating stock, but payment recorded.");
+        }
+    };
 
         // Start
         init();
