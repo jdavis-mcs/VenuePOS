@@ -14,6 +14,7 @@ import {
     orderBy,   // <--- Added
     limit,     // <--- Added
     getDoc,    // <--- Added
+    setDoc,
     onSnapshot,
     increment 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -48,6 +49,7 @@ export {
     addDoc, 
     deleteDoc, 
     updateDoc, 
+    setDoc,
     query, 
     where, 
     orderBy, 
