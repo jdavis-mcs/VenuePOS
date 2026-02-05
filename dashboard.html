@@ -8,19 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --surface-color: #2d2d2d;
-            --surface-hover: #3d3d3d;
-            --primary-color: #3b82f6; 
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --success-color: #22c55e;
-            --text-color: #ffffff;
-            --text-muted: #9ca3af;
-            --border-color: #404040;
-        }
-
+        :root { --bg-color: #1a1a1a; --surface-color: #2d2d2d; --surface-hover: #3d3d3d; --primary-color: #3b82f6; --danger-color: #ef4444; --warning-color: #f59e0b; --success-color: #22c55e; --text-color: #ffffff; --text-muted: #9ca3af; --border-color: #404040; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
 
         /* Sidebar */
@@ -42,6 +30,7 @@
         .btn-danger { background-color: var(--danger-color); color: white; padding: 6px 12px; font-size: 0.8rem;}
         .btn-warning { background-color: var(--warning-color); color: black; padding: 6px 12px; font-size: 0.8rem;}
         .btn-secondary { background-color: var(--surface-hover); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
 
         /* Tables */
         .data-table { width: 100%; border-collapse: collapse; background-color: var(--surface-color); border-radius: 8px; overflow: hidden; }
@@ -49,9 +38,9 @@
         .data-table th { background-color: #222; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;}
         .data-table tr:hover { background-color: var(--surface-hover); }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .badge-admin { background-color: #8b5cf6; color: white; }
-        .badge-manager { background-color: #3b82f6; color: white; }
-        .badge-employee { background-color: #64748b; color: white; }
+        .badge-complete { background: #22c55e; color: black; }
+        .badge-void { background: #ef4444; color: white; }
+        .badge-return { background: #f59e0b; color: black; }
 
         /* Report Cards */
         .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
@@ -61,18 +50,29 @@
         /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.open { opacity: 1; pointer-events: all; }
-        .modal { background-color: var(--surface-color); width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal { background-color: var(--surface-color); width: 500px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
         .form-input { width: 100%; padding: 10px; background-color: #111; border: 1px solid var(--border-color); color: white; border-radius: 6px; box-sizing: border-box; }
+        .form-textarea { width: 100%; padding: 10px; background-color: #111; border: 1px solid var(--border-color); color: white; border-radius: 6px; box-sizing: border-box; resize: vertical; min-height: 80px; }
         .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-        /* Print Hidden Areas */
+        /* Return List */
+        .return-list { background: #111; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto; }
+        .return-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; align-items: center; }
+        
+        /* Hidden Print Areas */
         #print-container { display: none; }
         @media print {
-            body * { visibility: hidden; }
-            #print-container, #print-container * { visibility: visible; }
-            #print-container { position: absolute; left: 0; top: 0; width: 100%; }
+            body * { visibility: hidden; height: 0; overflow: hidden; }
+            #print-container, #print-container * { visibility: visible; height: auto; overflow: visible; }
+            #print-container { position: absolute; left: 0; top: 0; width: 58mm; padding: 0; margin: 0; }
+            
+            .receipt { width: 58mm; font-family: 'Courier New', monospace; font-size: 12px; color: black; background: white; margin-bottom: 20px; page-break-after: always; padding-bottom: 10px; border-bottom: 1px dashed #000; }
+            .receipt-center { text-align: center; margin-bottom: 10px; }
+            .receipt-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .receipt-bold { font-weight: bold; }
+            .receipt-big { font-size: 14px; font-weight: 800; }
         }
     </style>
 </head>
@@ -125,7 +125,7 @@
             
             <div class="report-grid">
                 <div class="report-card">
-                    <div style="color:var(--text-muted)">Today's Sales</div>
+                    <div style="color:var(--text-muted)">Today's Net Sales</div>
                     <div class="report-val" id="todaySales">$0.00</div>
                 </div>
                 <div class="report-card">
@@ -135,24 +135,24 @@
             </div>
 
             <table class="data-table">
-                <thead><tr><th>Time</th><th>Method</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Time</th><th>Type</th><th>Method</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="transactionsTableBody"></tbody>
             </table>
         </div>
 
         <div id="view-settings" style="display:none;">
             <div class="header"><div class="page-title">Receipt Settings</div></div>
-            <div class="modal" style="width: 100%; max-width: 600px;">
+            <div class="modal" style="width: 100%; max-width: 600px; position:relative; box-shadow:none; background:none;">
                 <div class="form-group">
                     <label class="form-label">Business Name</label>
-                    <input type="text" id="settingName" class="form-input" placeholder="e.g. My Awesome Shop">
+                    <input type="text" id="settingName" class="form-input">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Receipt Header (Address/Phone)</label>
+                    <label class="form-label">Receipt Header</label>
                     <textarea id="settingHeader" class="form-input" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Receipt Footer (Return Policy/Thanks)</label>
+                    <label class="form-label">Receipt Footer</label>
                     <textarea id="settingFooter" class="form-input" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
@@ -161,6 +161,37 @@
             </div>
         </div>
 
+    </div>
+
+    <div class="modal-overlay" id="actionModal">
+        <div class="modal">
+            <h2 id="actionTitle" style="margin-top:0">Action</h2>
+            <input type="hidden" id="actionTransId">
+            <input type="hidden" id="actionType"> <div class="form-group" id="itemListGroup">
+                <label class="form-label">Select Items</label>
+                <div class="return-list" id="actionItemList">
+                    </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reason (Max 250 chars)</label>
+                <textarea id="actionReason" class="form-textarea" maxlength="250" placeholder="Reason..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payback Method</label>
+                <select id="actionPayback" class="form-input">
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card Refund</option>
+                    <option value="Store Credit">Store Credit</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="window.closeModal('actionModal')">Cancel</button>
+                <button class="btn btn-danger" id="btnConfirmAction" onclick="window.processTransactionAction()">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" id="productModal">
@@ -176,6 +207,7 @@
             </div>
         </div>
     </div>
+
     <div class="modal-overlay" id="userModal">
         <div class="modal">
             <h2 style="margin-top:0">User</h2>
@@ -203,6 +235,7 @@
         import { db, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, limit, setDoc, getDoc, increment } from './firebase.js';
 
         let inventory = [], users = [], transactions = [];
+        let receiptConfig = { businessName: "POS", header: "", footer: "" };
         let currentUser = null;
 
         function init() {
@@ -225,7 +258,6 @@
                 users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderUsers();
             });
-            // Listen to last 50 transactions
             const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(50));
             onSnapshot(q, snap => {
                 transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -247,126 +279,263 @@
             `).join('');
         }
         function renderTransactions() {
-            let dailyTotal = 0;
-            let cashTotal = 0;
+            let netSales = 0;
+            let cashDrawer = 0;
             const today = new Date().toDateString();
 
             transactions.forEach(t => {
                 const tDate = new Date(t.date.seconds * 1000).toDateString();
+                // Only count valid sales for today
                 if (tDate === today && t.status !== 'void') {
-                    dailyTotal += t.total;
-                    if(t.method === 'Cash') cashTotal += t.total;
+                    netSales += t.total; // t.total is negative for returns, so this math works automatically
+                    
+                    if (t.method === 'Cash') {
+                        cashDrawer += t.total; // Adds sales, subtracts returns
+                    }
                 }
             });
 
-            document.getElementById('todaySales').textContent = `$${dailyTotal.toFixed(2)}`;
-            document.getElementById('cashDrawer').textContent = `$${cashTotal.toFixed(2)}`;
+            document.getElementById('todaySales').textContent = `$${netSales.toFixed(2)}`;
+            document.getElementById('cashDrawer').textContent = `$${cashDrawer.toFixed(2)}`;
 
-            document.getElementById('transactionsTableBody').innerHTML = transactions.map(t => `
-                <tr style="opacity: ${t.status === 'void' ? 0.5 : 1}">
+            document.getElementById('transactionsTableBody').innerHTML = transactions.map(t => {
+                const isReturn = t.type === 'return';
+                const isVoid = t.status === 'void';
+                const color = isReturn ? '#f59e0b' : (isVoid ? '#ef4444' : '#22c55e');
+                
+                return `
+                <tr style="opacity: ${isVoid ? 0.5 : 1}">
                     <td>${new Date(t.date.seconds * 1000).toLocaleTimeString()}</td>
+                    <td><span class="badge" style="background:${color}; color:black;">${t.type || 'sale'}</span></td>
                     <td>${t.method}</td>
                     <td>$${t.total.toFixed(2)}</td>
-                    <td>${t.status || 'Completed'}</td>
+                    <td>${t.status || 'complete'}</td>
                     <td>
-                        ${t.status !== 'void' ? `<button class="btn btn-danger btn-sm" onclick="window.voidSale('${t.id}')">VOID</button>` : 'VOIDED'}
+                        ${(!isVoid && !isReturn) ? `
+                            <button class="btn btn-warning btn-sm" onclick="window.openAction('return', '${t.id}')">RTRN</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.openAction('void', '${t.id}')">VOID</button>
+                        ` : ''}
                         <button class="btn btn-secondary btn-sm" onclick="window.reprint('${t.id}')">Print</button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
-        // --- Logic ---
-        window.saveProduct = async () => {
-             const id = document.getElementById('prodId').value;
-             const data = {
-                 name: document.getElementById('prodName').value,
-                 price: parseFloat(document.getElementById('prodPrice').value),
-                 stock: parseInt(document.getElementById('prodStock').value)
-             };
-             if(id) await updateDoc(doc(db,"products",id), data);
-             else await addDoc(collection(db,"products"), data);
-             window.closeModal('productModal');
-        };
-        
-        window.voidSale = async (id) => {
-            if(!confirm("VOID this transaction? This will return items to stock.")) return;
+        // --- Action Logic (Void/Return) ---
+        window.openAction = (type, id) => {
             const t = transactions.find(x => x.id === id);
+            if (!t) return;
+
+            document.getElementById('actionModal').classList.add('open');
+            document.getElementById('actionType').value = type;
+            document.getElementById('actionTransId').value = id;
+            document.getElementById('actionReason').value = "";
+            document.getElementById('actionPayback').value = t.method; // Default to original method
+
+            const title = type === 'void' ? "VOID TRANSACTION" : "RETURN ITEMS";
+            document.getElementById('actionTitle').innerText = title;
+
+            // Render Items
+            const list = document.getElementById('actionItemList');
+            list.innerHTML = t.items.map((item, idx) => `
+                <div class="return-item">
+                    <span>${item.name} ($${item.price})</span>
+                    <label>
+                        <input type="checkbox" class="action-check" value="${idx}" 
+                        ${type === 'void' ? 'checked disabled' : ''}> </label>
+                </div>
+            `).join('');
+        };
+
+        window.processTransactionAction = async () => {
+            const type = document.getElementById('actionType').value;
+            const id = document.getElementById('actionTransId').value;
+            const reason = document.getElementById('actionReason').value;
+            const payback = document.getElementById('actionPayback').value;
             
-            // 1. Return stock
-            const updates = t.items.map(item => {
-                return updateDoc(doc(db, "products", item.id), { stock: increment(item.qty) });
-            });
-            await Promise.all(updates);
+            const originalT = transactions.find(x => x.id === id);
+            
+            // Get selected items
+            const checkboxes = document.querySelectorAll('.action-check:checked');
+            if (checkboxes.length === 0) return alert("Select items.");
+            if (reason.length === 0) return alert("Enter a reason.");
 
-            // 2. Mark Void
-            await updateDoc(doc(db, "sales", id), { status: 'void' });
-        };
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const selectedItems = selectedIndices.map(idx => originalT.items[idx]);
 
-        window.loadSettings = async () => {
-            const docSnap = await getDoc(doc(db, "settings", "receipt"));
-            if(docSnap.exists()) {
-                const d = docSnap.data();
-                document.getElementById('settingName').value = d.businessName || "";
-                document.getElementById('settingHeader').value = d.header || "";
-                document.getElementById('settingFooter').value = d.footer || "";
+            // 1. Restock Selected Items
+            const restockPromises = selectedItems.map(item => 
+                updateDoc(doc(db, "products", item.id), { stock: increment(item.qty) })
+            );
+            await Promise.all(restockPromises);
+
+            if (type === 'void') {
+                // VOID: Mark original as void
+                await updateDoc(doc(db, "sales", id), { 
+                    status: 'void',
+                    voidReason: reason,
+                    voidPayback: payback
+                });
+                
+                // Print Void Slip
+                printReceipt({ ...originalT, voidReason: reason, paybackMethod: payback }, 'void');
+            } 
+            else if (type === 'return') {
+                // RETURN: Create NEW transaction (Negative)
+                const refundTotal = selectedItems.reduce((a, b) => a + (b.price * b.qty), 0) * -1;
+                
+                const returnData = {
+                    date: new Date(),
+                    type: 'return',
+                    parentTransId: id,
+                    items: selectedItems,
+                    total: refundTotal,
+                    method: payback,
+                    reason: reason,
+                    status: 'complete'
+                };
+                
+                await addDoc(collection(db, "sales"), returnData);
+                
+                // Print 2 Receipts
+                printReceipt(returnData, 'return');
             }
+
+            window.closeModal('actionModal');
         };
 
-        window.saveSettings = async () => {
-            await setDoc(doc(db, "settings", "receipt"), {
-                businessName: document.getElementById('settingName').value,
-                header: document.getElementById('settingHeader').value,
-                footer: document.getElementById('settingFooter').value
-            });
-            alert("Settings Saved");
+        // --- Printing ---
+        window.reprint = (id) => {
+            const t = transactions.find(x => x.id === id);
+            if(t) printReceipt(t, 'reprint');
         };
 
-        // --- Printing Reports ---
+        function printReceipt(data, mode) {
+            const container = document.getElementById('print-container');
+            container.innerHTML = ""; // Clear
+
+            const createSlip = (titleOverride) => {
+                const date = data.date.seconds ? new Date(data.date.seconds * 1000).toLocaleString() : new Date().toLocaleString();
+                const isNegative = data.total < 0;
+                
+                let html = `<div class="receipt">
+                    <div class="receipt-center">
+                        <div class="receipt-big">${receiptConfig.businessName || "POS"}</div>
+                        <div>${(receiptConfig.header || "").replace(/\n/g, '<br>')}</div>
+                        <br>
+                        ${mode === 'reprint' ? '*** REPRINT ***<br>' : ''}
+                        ${mode === 'void' ? '*** VOID SLIP ***<br>' : ''}
+                        ${titleOverride ? `*** ${titleOverride} ***<br>` : ''}
+                        <div>${date}</div>
+                        <div>ID: ${data.id ? data.id.slice(-6) : 'PENDING'}</div>
+                    </div>
+                    <hr>`;
+                
+                // Items
+                html += data.items.map(i => `
+                    <div class="receipt-line">
+                        <span>${i.qty}x ${i.name}</span>
+                        <span>$${(i.price * i.qty).toFixed(2)}</span>
+                    </div>`).join('');
+                
+                html += `<hr>
+                    <div class="receipt-line receipt-bold">
+                        <span>TOTAL</span>
+                        <span>$${Math.abs(data.total).toFixed(2)} ${isNegative ? '(REFUND)' : ''}</span>
+                    </div>
+                    <div class="receipt-line">
+                        <span>METHOD</span>
+                        <span>${data.method || data.paybackMethod}</span>
+                    </div>`;
+
+                if (mode === 'void' || mode === 'return') {
+                    html += `<br><div class="receipt-bold">Reason:</div><div>${data.reason || data.voidReason}</div>`;
+                }
+
+                if (mode === 'reprint') {
+                    html += `<br><div class="receipt-center">*** REPRINT ***</div>`;
+                }
+
+                html += `<br><div class="receipt-center">${(receiptConfig.footer || "").replace(/\n/g, '<br>')}</div>
+                </div>`;
+                return html;
+            };
+
+            if (mode === 'return') {
+                container.innerHTML += createSlip("STORE COPY");
+                container.innerHTML += createSlip("CUSTOMER COPY");
+            } else {
+                container.innerHTML += createSlip();
+            }
+
+            window.print();
+        }
+
         window.printZReport = () => {
             const total = document.getElementById('todaySales').textContent;
             const cash = document.getElementById('cashDrawer').textContent;
-            
             const div = document.getElementById('print-container');
             div.innerHTML = `
-                <div style="font-family:monospace; width: 300px; text-align:center;">
-                    <h2>Z-REPORT</h2>
-                    <p>${new Date().toLocaleString()}</p>
-                    <hr>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>Total Sales:</span><span>${total}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>Cash Drawer:</span><span>${cash}</span>
+                <div class="receipt">
+                    <div class="receipt-center">
+                        <div class="receipt-big">Z-REPORT</div>
+                        <div>${new Date().toLocaleString()}</div>
                     </div>
                     <hr>
-                    <p>Signature: ________________</p>
-                </div>
-            `;
+                    <div class="receipt-line"><span>Net Sales:</span><span>${total}</span></div>
+                    <div class="receipt-line"><span>Cash Drawer:</span><span>${cash}</span></div>
+                    <hr>
+                    <br><br>
+                    <div>Signed: _________________</div>
+                </div>`;
             window.print();
         };
 
-        // Standard Helpers
-        window.editProduct = (id) => {
-            const p = inventory.find(i=>i.id===id);
-            document.getElementById('prodId').value = p.id;
-            document.getElementById('prodName').value = p.name;
-            document.getElementById('prodPrice').value = p.price;
-            document.getElementById('prodStock').value = p.stock;
-            document.getElementById('productModal').classList.add('open');
-        }
-        window.openProductModal = () => { 
-            document.getElementById('prodId').value = ""; document.getElementById('prodName').value = "";
-            document.getElementById('productModal').classList.add('open'); 
-        }
-        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
-        window.switchTab = (tab) => {
-            ['inventory','users','transactions','settings'].forEach(t => {
-                document.getElementById('view-'+t).style.display = (t===tab)?'block':'none';
-            });
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            // Note: Simplification for demo, toggle class logic
+        // --- Standard Logic ---
+        window.loadSettings = async () => {
+            const d = await getDoc(doc(db, "settings", "receipt"));
+            if(d.exists()) {
+                receiptConfig = d.data();
+                document.getElementById('settingName').value = receiptConfig.businessName;
+                document.getElementById('settingHeader').value = receiptConfig.header;
+                document.getElementById('settingFooter').value = receiptConfig.footer;
+            }
         };
+        window.saveSettings = async () => {
+            const cfg = {
+                businessName: document.getElementById('settingName').value,
+                header: document.getElementById('settingHeader').value,
+                footer: document.getElementById('settingFooter').value
+            };
+            await setDoc(doc(db, "settings", "receipt"), cfg);
+            receiptConfig = cfg;
+            alert("Saved");
+        };
+
+        // Helpers
+        window.saveProduct = async () => {
+             const id = document.getElementById('prodId').value;
+             const data = { name: document.getElementById('prodName').value, price: parseFloat(document.getElementById('prodPrice').value), stock: parseInt(document.getElementById('prodStock').value) };
+             if(id) await updateDoc(doc(db,"products",id), data); else await addDoc(collection(db,"products"), data);
+             window.closeModal('productModal');
+        };
+        window.saveUser = async () => {
+             const id = document.getElementById('userId').value;
+             const data = { name: document.getElementById('userName').value, pin: document.getElementById('userPin').value, role: document.getElementById('userRole').value };
+             if(id) await updateDoc(doc(db,"users",id), data); else await addDoc(collection(db,"users"), data);
+             window.closeModal('userModal');
+        };
+        window.editProduct = (id) => {
+            const p = inventory.find(i=>i.id===id); document.getElementById('prodId').value=p.id; document.getElementById('prodName').value=p.name; document.getElementById('prodPrice').value=p.price; document.getElementById('prodStock').value=p.stock; document.getElementById('productModal').classList.add('open');
+        }
+        window.editUser = (id) => {
+            const u = users.find(i=>i.id===id); document.getElementById('userId').value=u.id; document.getElementById('userName').value=u.name; document.getElementById('userPin').value=u.pin; document.getElementById('userRole').value=u.role; document.getElementById('userModal').classList.add('open');
+        }
+        window.deleteItem = async (c,id) => { if(confirm("Delete?")) await deleteDoc(doc(db,c,id)); }
+        window.openProductModal = () => { document.getElementById('prodId').value=""; document.getElementById('productModal').classList.add('open'); }
+        window.openUserModal = () => { document.getElementById('userId').value=""; document.getElementById('userModal').classList.add('open'); }
+        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+        window.switchTab = (t) => { ['inventory','users','transactions','settings'].forEach(x=>document.getElementById('view-'+x).style.display=(x===t)?'block':'none'); }
         window.logout = () => { sessionStorage.removeItem('pos_user'); window.location.href="index.html"; };
 
         init();
