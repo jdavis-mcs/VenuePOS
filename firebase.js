@@ -2,17 +2,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
-  getFirestore, 
-  collection, 
-  doc, 
-  getDocs, 
-  addDoc, 
-  deleteDoc, 
-  updateDoc,
-  query, 
-  where, 
-  onSnapshot,
-  increment
+    getFirestore, 
+    collection, 
+    doc, 
+    getDocs, 
+    addDoc, 
+    deleteDoc, 
+    updateDoc, 
+    query, 
+    where, 
+    orderBy,   // <--- Added
+    limit,     // <--- Added
+    getDoc,    // <--- Added
+    onSnapshot,
+    increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- PASTE YOUR CONFIG HERE ---
@@ -40,15 +43,18 @@ signInAnonymously(auth).then(() => {
 
 // Export tools
 export { 
-    db, 
+    getFirestore, 
     collection, 
     doc, 
     getDocs, 
     addDoc, 
     deleteDoc, 
-    updateDoc, // <--- Added this
+    updateDoc, 
     query, 
     where, 
+    orderBy,   // <--- Added
+    limit,     // <--- Added
+    getDoc,    // <--- Added
     onSnapshot,
     increment
 };
