@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System | Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --surface-color: #2d2d2d;
+            --surface-hover: #3d3d3d;
+            --primary-color: #3b82f6; 
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
+            --text-color: #ffffff;
+            --text-muted: #9ca3af;
+            --border-color: #404040;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 250px;
+            background-color: #111;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 40px;
+            color: var(--primary-color);
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover { background-color: var(--surface-color); color: white; }
+        .nav-item.active { background-color: var(--surface-color); color: var(--primary-color); border-left: 3px solid var(--primary-color); }
+
+        .user-profile {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+        .logout-link { color: var(--danger-color); cursor: pointer; display: block; margin-top: 10px; font-weight: 600;}
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title { font-size: 2rem; font-weight: 700; }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; padding: 6px 12px; font-size: 0.8rem;}
+
+        /* --- Tables --- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table th, .data-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th { background-color: #222; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;}
+        .data-table tr:hover { background-color: var(--surface-hover); }
+
+        /* Role Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-admin { background-color: #8b5cf6; color: white; }
+        .badge-manager { background-color: #3b82f6; color: white; }
+        .badge-employee { background-color: #64748b; color: white; }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.7);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+        .modal {
+            background-color: var(--surface-color);
+            width: 400px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
+        .form-input {
+            width: 100%; padding: 10px;
+            background-color: #111; border: 1px solid var(--border-color);
+            color: white; border-radius: 6px; box-sizing: border-box;
+        }
+        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">POS Admin</div>
+        <div class="nav-item active" onclick="switchTab('inventory')">Inventory</div>
+        <div class="nav-item" onclick="switchTab('users')">Users</div>
+        <div class="nav-item" onclick="alert('Settings not implemented')">Settings</div>
+        
+        <div class="user-profile">
+            Logged in as: <strong id="currentUserDisplay">Loading...</strong>
+            <br>
+            <span id="currentRoleDisplay" class="badge badge-employee" style="margin-top:5px; display:inline-block;">...</span>
+            <span class="logout-link" onclick="window.location.href='index.html'">Logout</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="view-inventory">
+            <div class="header">
+                <div class="page-title">Inventory</div>
+                <button id="btnAddProduct" class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="view-users" style="display:none;">
+            <div class="header">
+                <div class="page-title">Users</div>
+                <button id="btnAddUser" class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>PIN</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <h2 style="margin-top:0">Add Product</h2>
+            <div class="form-group">
+                <label class="form-label">Product Name</label>
+                <input type="text" id="prodName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select id="prodCat" class="form-input">
+                    <option value="Food">Food</option>
+                    <option value="Drinks">Drinks</option>
+                    <option value="Merch">Merch</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Price ($)</label>
+                <input type="number" id="prodPrice" class="form-input" step="0.01">
+            </div>
+            <div class="form-actions">
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="closeModal('productModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProduct()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <h2 style="margin-top:0">Add User</h2>
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" id="userName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">PIN (4 digits)</label>
+                <input type="text" id="userPin" class="form-input" maxlength="4">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select id="userRole" class="form-input">
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn" style="background:transparent; color:#ccc;" onclick="closeModal('userModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUser()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Mock Data ---
+        let inventory = [
+            { id: 1, name: "Double Burger", category: "Food", price: 12.50 },
+            { id: 4, name: "Coca Cola", category: "Drinks", price: 2.50 },
+        ];
+
+        let users = [
+            { pin: "1337", name: "Manager", role: "admin" }, // Using 'admin' for Full Access
+            { pin: "0000", name: "Cashier", role: "employee" },
+            { pin: "1234", name: "Shift Lead", role: "manager" } 
+        ];
+
+        // --- Simulated Auth State ---
+        // Change this variable to test different views: 'admin', 'manager', 'employee'
+        const CURRENT_USER_ROLE = "admin"; 
+        const CURRENT_USER_NAME = "Admin User";
+
+        // --- Permissions Logic ---
+        const PERMISSIONS = {
+            admin:    { canAdd: true, canDelete: true, canViewUsers: true },
+            manager:  { canAdd: true, canDelete: false, canViewUsers: true },
+            employee: { canAdd: false, canDelete: false, canViewUsers: true } // View only
+        };
+
+        const myPerms = PERMISSIONS[CURRENT_USER_ROLE];
+
+        // --- Initialization ---
+        function init() {
+            // Setup Profile UI
+            document.getElementById('currentUserDisplay').textContent = CURRENT_USER_NAME;
+            const roleBadge = document.getElementById('currentRoleDisplay');
+            roleBadge.textContent = CURRENT_USER_ROLE;
+            roleBadge.className = `badge badge-${CURRENT_USER_ROLE}`;
+
+            // Hide/Show Create Buttons based on Role
+            if (!myPerms.canAdd) {
+                document.getElementById('btnAddProduct').style.display = 'none';
+                document.getElementById('btnAddUser').style.display = 'none';
+            }
+
+            renderInventory();
+            renderUsers();
+        }
+
+        // --- Navigation ---
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('view-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
+            document.getElementById('view-users').style.display = tab === 'users' ? 'block' : 'none';
+        }
+
+        // --- Render Functions ---
+        function renderInventory() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = inventory.map((item, index) => `
+                <tr>
+                    <td>#${item.id}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td><span class="badge" style="background:#444">${item.category}</span></td>
+                    <td>$${item.price.toFixed(2)}</td>
+                    <td>
+                        ${myPerms.canDelete ? `<button class="btn btn-danger" onclick="deleteItem('inv', ${index})">Delete</button>` : '<span style="color:#555; font-size:0.8rem">Read Only</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = users.map((u, index) => `
+                <tr>
+                    <td>****</td>
+                    <td><strong>${u.name}</strong></td>
+                    <td><span class="badge badge-${u.role}">${u.role}</span></td>
+                    <td>
+                        ${myPerms.canDelete ? `<button class="btn btn-danger" onclick="deleteItem('usr', ${index})">Delete</button>` : '<span style="color:#555; font-size:0.8rem">Read Only</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // --- Actions ---
+        function deleteItem(type, index) {
+            if (!myPerms.canDelete) return alert("Access Denied");
+            
+            if (confirm("Are you sure? This cannot be undone.")) {
+                if (type === 'inv') inventory.splice(index, 1);
+                if (type === 'usr') users.splice(index, 1);
+                renderInventory();
+                renderUsers();
+            }
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('prodName').value;
+            const cat = document.getElementById('prodCat').value;
+            const price = parseFloat(document.getElementById('prodPrice').value);
+
+            if (name && price) {
+                inventory.push({ id: Date.now(), name, category: cat, price });
+                closeModal('productModal');
+                renderInventory();
+                // Clear form
+                document.getElementById('prodName').value = '';
+                document.getElementById('prodPrice').value = '';
+            }
+        }
+
+        function saveUser() {
+            const name = document.getElementById('userName').value;
+            const pin = document.getElementById('userPin').value;
+            const role = document.getElementById('userRole').value;
+
+            if (name && pin) {
+                users.push({ pin, name, role });
+                closeModal('userModal');
+                renderUsers();
+                // Clear form
+                document.getElementById('userName').value = '';
+                document.getElementById('userPin').value = '';
+            }
+        }
+
+        // --- Modal Control ---
+        function openProductModal() { document.getElementById('productModal').classList.add('open'); }
+        function openUserModal() { document.getElementById('userModal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
