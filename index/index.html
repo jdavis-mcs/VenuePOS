@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POS System | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --surface-color: #2d2d2d;
+            --primary-color: #3b82f6; /* Blue */
+            --text-color: #ffffff;
+            --error-color: #ef4444;
+            --success-color: #22c55e;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Prevent scrolling on touch devices */
+        }
+
+        /* Container for the Auth Screen */
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .status-message {
+            height: 24px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .status-message.error { color: var(--error-color); opacity: 1; }
+        .status-message.success { color: var(--success-color); opacity: 1; }
+
+        /* PIN Display */
+        .pin-display {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            letter-spacing: 10px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .pin-dot {
+            width: 15px;
+            height: 15px;
+            background-color: #555;
+            border-radius: 50%;
+            margin: 0 5px;
+            transition: background-color 0.1s ease;
+        }
+
+        .pin-dot.active {
+            background-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        /* Keypad Grid */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .key {
+            background-color: var(--surface-color);
+            border: none;
+            color: white;
+            padding: 25px 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            user-select: none;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+
+        .key:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+            background-color: #404040;
+        }
+
+        .key.clear {
+            background-color: #3f3f3f;
+            color: #ccc;
+        }
+
+        .key.enter {
+            background-color: var(--primary-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <h1>POS Terminal</h1>
+        <div id="status" class="status-message">Enter Employee PIN</div>
+
+        <div class="pin-display" id="pinDisplay">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="keypad">
+            <button class="key" onclick="press(1)">1</button>
+            <button class="key" onclick="press(2)">2</button>
+            <button class="key" onclick="press(3)">3</button>
+            
+            <button class="key" onclick="press(4)">4</button>
+            <button class="key" onclick="press(5)">5</button>
+            <button class="key" onclick="press(6)">6</button>
+            
+            <button class="key" onclick="press(7)">7</button>
+            <button class="key" onclick="press(8)">8</button>
+            <button class="key" onclick="press(9)">9</button>
+            
+            <button class="key clear" onclick="clearPin()">CLR</button>
+            <button class="key" onclick="press(0)">0</button>
+            <button class="key enter" onclick="submitPin()">→</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const MAX_PIN_LENGTH = 4;
+        let currentPin = "";
+
+        // --- Mock Database (To be replaced by Firebase Firestore) ---
+        const MOCK_USERS = [
+            { pin: "1337", name: "Manager", role: "admin" },
+            { pin: "0000", name: "Cashier", role: "standard" }
+        ];
+
+        // --- UI Logic ---
+        const displayContainer = document.getElementById('pinDisplay');
+        const dots = displayContainer.getElementsByClassName('pin-dot');
+        const statusEl = document.getElementById('status');
+
+        function updateDisplay() {
+            // Update dots based on current PIN length
+            for (let i = 0; i < dots.length; i++) {
+                if (i < currentPin.length) {
+                    dots[i].classList.add('active');
+                } else {
+                    dots[i].classList.remove('active');
+                }
+            }
+        }
+
+        function press(num) {
+            if (currentPin.length < MAX_PIN_LENGTH) {
+                currentPin += num;
+                updateDisplay();
+                
+                // Optional: Auto-submit on 4th digit
+                // if (currentPin.length === MAX_PIN_LENGTH) submitPin();
+            }
+        }
+
+        function clearPin() {
+            currentPin = "";
+            updateDisplay();
+            setStatus("Enter Employee PIN", "");
+        }
+
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = 'status-message ' + type;
+        }
+
+        function submitPin() {
+            if (currentPin.length === 0) return;
+
+            setStatus("Verifying...", "");
+            
+            // Simulate Network Delay
+            setTimeout(() => {
+                const user = MOCK_USERS.find(u => u.pin === currentPin);
+
+                if (user) {
+                    setStatus(`Welcome, ${user.name}!`, "success");
+                    // Success Animation / Transition
+                    setTimeout(() => {
+                        handleLoginSuccess(user);
+                    }, 800);
+                } else {
+                    setStatus("Invalid PIN", "error");
+                    shakeDisplay();
+                    setTimeout(clearPin, 500);
+                }
+            }, 300);
+        }
+
+        function handleLoginSuccess(user) {
+            console.log("Logged in as:", user);
+            // TODO: Route to Dashboard based on user.role
+            alert(`Transitioning to ${user.role} Dashboard...`);
+            clearPin();
+        }
+
+        function shakeDisplay() {
+            displayContainer.style.transform = "translateX(10px)";
+            setTimeout(() => {
+                displayContainer.style.transform = "translateX(-10px)";
+                setTimeout(() => {
+                    displayContainer.style.transform = "translateX(0)";
+                }, 100);
+            }, 100);
+        }
+
+        // Keyboard support for desktop testing
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') press(e.key);
+            if (e.key === 'Backspace') clearPin();
+            if (e.key === 'Enter') submitPin();
+        });
+
+    </script>
+</body>
+</html>
