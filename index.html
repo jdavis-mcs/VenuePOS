@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>POS System | Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2558/2558944.png">
     
     <style>
         :root {
@@ -240,6 +244,15 @@
             if (e.key === 'Backspace') window.clearPin();
             if (e.key === 'Enter') window.submitPin();
         });
+
+        // Register PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then((reg) => {
+                    console.log('Service Worker Registered');
+                });
+            });
+        }
     </script>
 </body>
 </html>
